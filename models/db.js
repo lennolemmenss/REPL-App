@@ -12,10 +12,10 @@ const sequelize = new Sequelize(connectionString, {
     dialectOptions: {
         ssl: {
             require: true,
-            rejectUnauthorized: false // Zorg ervoor dat je dit alleen gebruikt voor test- of ontwikkelomgevingen
+            rejectUnauthorized: false
         }
     }
 });
 
-// Exporteren van de sequelize-instantie
+
 module.exports = sequelize;

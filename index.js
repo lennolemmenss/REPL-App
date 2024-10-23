@@ -60,7 +60,6 @@ async function updateUser(personID, lastName, firstName, age) {
             return;
         }
 
-        // Bijwerken van de gebruiker
         user.LastName = lastName;
         user.FirstName = firstName;
         user.Age = age;
