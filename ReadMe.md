@@ -24,3 +24,10 @@ The **REPL CLI Application** is a simple command-line tool built with Node.js, u
 1. Clone the repository to your local machine.
    ```bash
    git clone <repository-url>
+
+
+## Running the application
+
+Start the CLI by running the following command:
+
+``npm start
