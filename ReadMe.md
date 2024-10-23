@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **Tembo CLI Application** is a simple command-line tool built with Node.js, utilizing **Sequelize** to interact with a PostgreSQL database. Users can perform CRUD operations on a `Users` table and retrieve information about the database through various commands.
+The **REPL CLI Application** is a simple command-line tool built with Node.js, utilizing **Sequelize** to interact with a PostgreSQL database. Users can perform CRUD operations on a `Users` table and retrieve information about the database through various commands.
 
 ## Features
 
@@ -16,7 +16,7 @@ The **Tembo CLI Application** is a simple command-line tool built with Node.js, 
 ## Requirements
 
 - Node.js (version 14 or higher)
-- PostgreSQL
+- PostgreSQL (Tembo)
 - Sequelize (included as a dependency)
 
 ## Installation
