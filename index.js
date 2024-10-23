@@ -1,6 +1,6 @@
 const readline = require('readline');
-const sequelize = require('./models/db'); // db.js bestand
-const User = require('./models/User'); // User.js bestand
+const sequelize = require('./models/db');
+const User = require('./models/User'); 
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -8,12 +8,12 @@ const rl = readline.createInterface({
     prompt: 'command> '
 });
 
-
 // Synchronize database
 async function syncDatabase() {
     try {
-        await sequelize.sync({ alter: true }); // of gebruik { force: true } voor een schone staat
+        await sequelize.sync({ alter: true });
         console.log("Database synchronized");
+
     } catch (error) {
         console.error("Error synchronizing the database:", error);
     }
@@ -22,7 +22,9 @@ async function syncDatabase() {
 // Main function
 async function main() {
     await syncDatabase();
-
+   
+    console.log("Available commands: add, delete, update, list, tables, info <table_name>, help, exit");
+    
     rl.prompt();
 
     rl.on('line', (input) => {
@@ -37,6 +39,9 @@ async function main() {
 }
 
 
+// CRUD
+
+// Add user to the database
 async function addUser(lastName, firstName, age) {
     try {
         const user = await User.create({ LastName: lastName, FirstName: firstName, Age: age });
@@ -46,7 +51,7 @@ async function addUser(lastName, firstName, age) {
     }
 }
 
-
+// Update a user by personID
 async function updateUser(personID, lastName, firstName, age) {
     try {
         const user = await User.findOne({ where: { id: personID } });
@@ -57,8 +62,8 @@ async function updateUser(personID, lastName, firstName, age) {
 
         // Bijwerken van de gebruiker
         user.LastName = lastName;
-        user.FirstName = firstName; // Zorg ervoor dat je hier de juiste casing gebruikt
-        user.Age = age; // Wees consistent met de casing
+        user.FirstName = firstName;
+        user.Age = age;
 
         await user.save();
         console.log('User updated:', user.toJSON());
@@ -67,7 +72,7 @@ async function updateUser(personID, lastName, firstName, age) {
     }
 }
 
-
+// Delete user by personID
 async function deleteUser(personID) {
     try {
         const user = await User.destroy({ where: { id: personID } });
@@ -81,9 +86,7 @@ async function deleteUser(personID) {
     }
 }
 
-
-
-
+// Show all users
 async function showUsers() {
     try {
         const users = await User.findAll();
@@ -94,6 +97,36 @@ async function showUsers() {
 }
 
 
+
+// Additional Features
+async function describeTable(tableName) {
+    try {
+        const tableDescription = await sequelize.queryInterface.describeTable(tableName)
+        console.table(tableDescription);
+    } catch (err) {
+        console.error(`Error describing table ${tableName}:`, err);
+    }
+}
+
+async function showTables() {
+
+    try {
+        const tables = await sequelize.queryInterface.showAllTables();
+        console.log(tables);
+    } catch (error) {
+        console.log("Error fetching tables:", err.stack);
+    }
+    
+}
+
+
+function helpInfo() {
+    console.log("Available commands: add, delete, update, list, tables, info <table_name>, help, exit")    
+}
+
+
+
+// Handle REPL commands
 function handleCommand(input) {
     const args = input.trim().split(' ');
     const command = args[0];
@@ -127,24 +160,41 @@ function handleCommand(input) {
             }
             break;
 
-            case 'update':
-                if (args.length === 5) { // We verwachten nu 5 argumenten
-                    const personID = parseInt(args[1]);
-                    const lastName = args[2]; // Dit moet args[2] zijn
-                    const firstName = args[3]; // Dit moet args[3] zijn
-                    const age = parseInt(args[4]); // Dit moet args[4] zijn
-                    if (!isNaN(personID) && !isNaN(age)) {
-                        updateUser(personID, lastName, firstName, age);
-                    } else {
-                        console.log('Invalid PersonID or Age');
-                    }
+        case 'update':
+            if (args.length === 5) {
+                const personID = parseInt(args[1]);
+                const lastName = args[2];
+                const firstName = args[3];
+                const age = parseInt(args[4]);
+                if (!isNaN(personID) && !isNaN(age)) {
+                    updateUser(personID, lastName, firstName, age);
                 } else {
-                    console.log('Usage: update <PersonID> <LastName> <FirstName> <Age>');
+                    console.log('Invalid PersonID or Age');
                 }
-                break;
+            } else {
+                console.log('Usage: update <PersonID> <LastName> <FirstName> <Age>');
+            }
+            break;
 
         case 'list':
             showUsers();
+            break;
+ 
+        case 'info':
+            if (args.length === 2) {
+                const tableName = args[1];
+                describeTable(tableName);
+            } else {
+                console.log('Usage: info <table_name>');
+            }
+            break;
+
+        case 'tables':
+            showTables();
+            break;
+
+        case "help":
+            helpInfo();
             break;
 
         case 'exit':
@@ -152,10 +202,9 @@ function handleCommand(input) {
             break;
 
         default:
-            console.log('Unknown command. Available commands: add, delete, list, exit');
+            console.log('Unknown command. Available commands: add, delete, update, list, tables, info <table_name>, help, exit');
             break;
     }
 }
-
 
 main();
