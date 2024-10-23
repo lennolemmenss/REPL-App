@@ -1,4 +1,4 @@
-# Tembo CLI Application
+# REPL CLI Application
 
 ## Overview
 
@@ -30,4 +30,4 @@ The **REPL CLI Application** is a simple command-line tool built with Node.js, u
 
 Start the CLI by running the following command:
 
-``npm start
+```npm start
