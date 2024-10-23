@@ -104,7 +104,7 @@ async function describeTable(tableName) {
         const tableDescription = await sequelize.queryInterface.describeTable(tableName)
         console.table(tableDescription);
     } catch (err) {
-        console.error(`Error describing table ${tableName}:`, err);
+        console.error("Table does not exists!");
     }
 }
 
