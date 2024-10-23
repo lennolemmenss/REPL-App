@@ -1,7 +1,10 @@
 const { Sequelize } = require('sequelize');
 
 // Connection for PostgreSQL database
-const connectionString = 'postgresql://postgres:2DuWjFIzrCDp4mYH@faithlessly-exotic-char.data-1.use1.tembo.io:5432/postgres';
+
+// Paste here you're connection string
+// const connectionString = 'postgresql://<username>:<password>@<host>:<port>/<database>';
+
 
 
 const sequelize = new Sequelize(connectionString, {
