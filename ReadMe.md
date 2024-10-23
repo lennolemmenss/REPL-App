@@ -29,5 +29,7 @@ The **REPL CLI Application** is a simple command-line tool built with Node.js, u
 ## Running the application
 
 Start the CLI by running the following command:
-
-```npm start
+```bash 
+npm start
+```
+You will see the prompt `command>`, where you can enter commands to interact with the application.
