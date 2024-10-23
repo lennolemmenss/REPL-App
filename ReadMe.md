@@ -25,10 +25,22 @@ The **REPL CLI Application** is a simple command-line tool built with Node.js, u
    ```bash
    git clone <repository-url>
 
+2. Add your Tembo connection string to the configuration file. Open the `models/db.js` file and replace the existing connection string with your own:
+
+   ```javascript
+   const connectionString = 'postgresql://<username>:<password>@<host>:<port>/<database>';
+   ```
 
 ## Running the application
 
+Before starting the application, ensure that all necessary dependencies are installed. You can do this by running the following command in your project directory:
+
+```bash
+npm install
+   ```
+
 Start the CLI by running the following command:
+
 ```bash 
 npm start
 ```
