@@ -13,9 +13,29 @@ async function syncDatabase() {
     try {
         await sequelize.sync({ alter: true });
         console.log("Database synchronized");
-
     } catch (error) {
         console.error("Error synchronizing the database:", error);
+    }
+}
+
+// New function to execute raw SQL queries
+async function executeQuery(sqlQuery) {
+    try {
+        const [results, metadata] = await sequelize.query(sqlQuery, {
+            type: sequelize.QueryTypes.SELECT,  // Force SELECT type for consistent output
+            raw: true  // Get raw results
+        });
+        
+        if (!results || results.length === 0) {
+            console.log('Query executed successfully. No results to display.');
+            return;
+        }
+
+        // If results are present, display them in a table format
+        console.table(results);
+        
+    } catch (err) {
+        console.error('Error executing query:', err.message);
     }
 }
 
@@ -23,12 +43,12 @@ async function syncDatabase() {
 async function main() {
     await syncDatabase();
    
-    console.log("Available commands: add, delete, update, list, tables, info <table_name>, help, exit");
+    console.log("Available commands: add, delete, update, list, tables, info <table_name>, query <sql>, help, exit");
     
     rl.prompt();
 
-    rl.on('line', (input) => {
-        handleCommand(input);
+    rl.on('line', async (input) => {
+        await handleCommand(input.trim());  // Make sure to await the command handling
         rl.prompt();
     });
 
@@ -38,172 +58,145 @@ async function main() {
     });
 }
 
-
-// CRUD
-
-// Add user to the database
-async function addUser(lastName, firstName, age) {
-    try {
-        const user = await User.create({ LastName: lastName, FirstName: firstName, Age: age });
-        console.log('User added:', user.toJSON());
-    } catch (err) {
-        console.error('Error adding user:', err);
-    }
-}
-
-// Update a user by personID
-async function updateUser(personID, lastName, firstName, age) {
-    try {
-        const user = await User.findOne({ where: { id: personID } });
-        if (!user) {
-            console.log('User not found');
-            return;
-        }
-
-        user.LastName = lastName;
-        user.FirstName = firstName;
-        user.Age = age;
-
-        await user.save();
-        console.log('User updated:', user.toJSON());
-    } catch (err) {
-        console.error('Error updating user:', err);
-    }
-}
-
-// Delete user by personID
-async function deleteUser(personID) {
-    try {
-        const user = await User.destroy({ where: { id: personID } });
-        if (user) {
-            console.log('User deleted');
-        } else {
-            console.log('User not found');
-        }
-    } catch (err) {
-        console.error('Error deleting user:', err);
-    }
-}
-
 // Show all users
 async function showUsers() {
     try {
-        const users = await User.findAll();
-        console.table(users.map(user => user.toJSON()));
+        const users = await User.findAll({
+            raw: true  // Get raw results
+        });
+        console.table(users);
     } catch (err) {
         console.error('Error fetching users:', err);
     }
 }
 
-
-
 // Additional Features
-async function describeTable(tableName) {
-    try {
-        const tableDescription = await sequelize.queryInterface.describeTable(tableName)
-        console.table(tableDescription);
-    } catch (err) {
-        console.error("Table does not exists!");
-    }
-}
-
 async function showTables() {
-
     try {
         const tables = await sequelize.queryInterface.showAllTables();
-        console.log(tables);
+        console.log("Available tables:");
+        console.table(tables.map(table => ({ tableName: table })));
     } catch (error) {
-        console.log("Error fetching tables:", err.stack);
+        console.error("Error fetching tables:", error);
     }
-    
 }
 
+async function describeTable(tableName) {
+    try {
+        const tableDescription = await sequelize.queryInterface.describeTable(tableName);
+        console.log(`Structure of table '${tableName}':`);
+        console.table(tableDescription);
+    } catch (err) {
+        console.error(`Table '${tableName}' does not exist!`);
+    }
+}
 
 function helpInfo() {
-    console.log("Available commands: add, delete, update, list, tables, info <table_name>, help, exit")    
+    console.log("\nAvailable commands:");
+    console.log("  add <LastName> <FirstName> <Age>    - Add a new user");
+    console.log("  delete <PersonID>                   - Delete a user by ID");
+    console.log("  update <PersonID> <LastName> <FirstName> <Age> - Update a user");
+    console.log("  list                               - Show all users");
+    console.log("  tables                             - Show all tables");
+    console.log("  info <table_name>                  - Show table structure");
+    console.log("  query <sql>                        - Execute raw SQL query");
+    console.log("  help                               - Show this help");
+    console.log("  exit                               - Exit the program\n");
 }
 
-
-
 // Handle REPL commands
-function handleCommand(input) {
-    const args = input.trim().split(' ');
-    const command = args[0];
+async function handleCommand(input) {
+    const args = input.split(' ');
+    const command = args[0].toLowerCase();  // Convert command to lowercase for case-insensitive matching
 
-    switch (command) {
-        case 'add':
-            if (args.length === 4) {
-                const lastName = args[1];
-                const firstName = args[2];
-                const age = parseInt(args[3]);
-                if (!isNaN(age)) {
-                    addUser(lastName, firstName, age);
+    try {
+        switch (command) {
+            case 'query':
+                if (args.length >= 2) {
+                    const sqlQuery = args.slice(1).join(' ');
+                    await executeQuery(sqlQuery);
                 } else {
-                    console.log('Invalid age');
+                    console.log('Usage: query <SQL statement>');
                 }
-            } else {
-                console.log('Usage: add <LastName> <FirstName> <Age>');
-            }
-            break;
+                break;
 
-        case 'delete':
-            if (args.length === 2) {
-                const personID = parseInt(args[1]);
-                if (!isNaN(personID)) {
-                    deleteUser(personID);
+            case 'add':
+                if (args.length === 4) {
+                    const lastName = args[1];
+                    const firstName = args[2];
+                    const age = parseInt(args[3]);
+                    if (!isNaN(age)) {
+                        await addUser(lastName, firstName, age);
+                    } else {
+                        console.log('Invalid age');
+                    }
                 } else {
-                    console.log('Invalid PersonID');
+                    console.log('Usage: add <LastName> <FirstName> <Age>');
                 }
-            } else {
-                console.log('Usage: delete <PersonID>');
-            }
-            break;
+                break;
 
-        case 'update':
-            if (args.length === 5) {
-                const personID = parseInt(args[1]);
-                const lastName = args[2];
-                const firstName = args[3];
-                const age = parseInt(args[4]);
-                if (!isNaN(personID) && !isNaN(age)) {
-                    updateUser(personID, lastName, firstName, age);
+            case 'delete':
+                if (args.length === 2) {
+                    const personID = parseInt(args[1]);
+                    if (!isNaN(personID)) {
+                        await deleteUser(personID);
+                    } else {
+                        console.log('Invalid PersonID');
+                    }
                 } else {
-                    console.log('Invalid PersonID or Age');
+                    console.log('Usage: delete <PersonID>');
                 }
-            } else {
-                console.log('Usage: update <PersonID> <LastName> <FirstName> <Age>');
-            }
-            break;
+                break;
 
-        case 'list':
-            showUsers();
-            break;
- 
-        case 'info':
-            if (args.length === 2) {
-                const tableName = args[1];
-                describeTable(tableName);
-            } else {
-                console.log('Usage: info <table_name>');
-            }
-            break;
+            case 'update':
+                if (args.length === 5) {
+                    const personID = parseInt(args[1]);
+                    const lastName = args[2];
+                    const firstName = args[3];
+                    const age = parseInt(args[4]);
+                    if (!isNaN(personID) && !isNaN(age)) {
+                        await updateUser(personID, lastName, firstName, age);
+                    } else {
+                        console.log('Invalid PersonID or Age');
+                    }
+                } else {
+                    console.log('Usage: update <PersonID> <LastName> <FirstName> <Age>');
+                }
+                break;
 
-        case 'tables':
-            showTables();
-            break;
+            case 'list':
+                await showUsers();
+                break;
+    
+            case 'info':
+                if (args.length === 2) {
+                    await describeTable(args[1]);
+                } else {
+                    console.log('Usage: info <table_name>');
+                }
+                break;
 
-        case "help":
-            helpInfo();
-            break;
+            case 'tables':
+                await showTables();
+                break;
 
-        case 'exit':
-            rl.close();
-            break;
+            case 'help':
+                helpInfo();
+                break;
 
-        default:
-            console.log('Unknown command. Available commands: add, delete, update, list, tables, info <table_name>, help, exit');
-            break;
+            case 'exit':
+                rl.close();
+                break;
+
+            default:
+                if (input.trim()) {  // Only show error for non-empty input
+                    console.log('Unknown command. Type "help" for available commands.');
+                }
+                break;
+        }
+    } catch (error) {
+        console.error('Error executing command:', error.message);
     }
 }
 
-main();
+main();     
