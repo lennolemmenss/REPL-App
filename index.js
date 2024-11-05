@@ -1,5 +1,5 @@
 const readline = require('readline');
-const sequelize = require('./models/db');
+const { Sequelize } = require('sequelize');  // Ensure Sequelize is imported here
 const User = require('./models/User'); 
 
 const rl = readline.createInterface({
@@ -8,8 +8,27 @@ const rl = readline.createInterface({
     prompt: 'command> '
 });
 
+// Function to prompt for connection string and initialize Sequelize
+async function initializeDatabase() {
+    return new Promise((resolve) => {
+        rl.question('Please enter your PostgreSQL connection string: ', (connectionString) => {
+            const sequelize = new Sequelize(connectionString, {
+                dialect: 'postgres',
+                dialectOptions: {
+                    ssl: {
+                        require: true,
+                        rejectUnauthorized: false
+                    }
+                }
+            });
+
+            resolve(sequelize);
+        });
+    });
+}
+
 // Synchronize database
-async function syncDatabase() {
+async function syncDatabase(sequelize) {
     try {
         await sequelize.sync({ alter: true });
         console.log("Database synchronized");
@@ -19,13 +38,13 @@ async function syncDatabase() {
 }
 
 // New function to execute raw SQL queries
-async function executeQuery(sqlQuery) {
+async function executeQuery(sequelize, sqlQuery) {
     try {
         const [results, metadata] = await sequelize.query(sqlQuery, {
             type: sequelize.QueryTypes.SELECT,  // Force SELECT type for consistent output
             raw: true  // Get raw results
         });
-        
+
         if (!results || results.length === 0) {
             console.log('Query executed successfully. No results to display.');
             return;
@@ -33,7 +52,7 @@ async function executeQuery(sqlQuery) {
 
         // If results are present, display them in a table format
         console.table(results);
-        
+
     } catch (err) {
         console.error('Error executing query:', err.message);
     }
@@ -41,14 +60,15 @@ async function executeQuery(sqlQuery) {
 
 // Main function
 async function main() {
-    await syncDatabase();
-   
+    const sequelize = await initializeDatabase();  // Initialize database with user input
+    await syncDatabase(sequelize);
+    
     console.log("Available commands: add, delete, update, list, tables, info <table_name>, query <sql>, help, exit");
     
     rl.prompt();
 
     rl.on('line', async (input) => {
-        await handleCommand(input.trim());  // Make sure to await the command handling
+        await handleCommand(input.trim(), sequelize);  // Pass sequelize instance to command handler
         rl.prompt();
     });
 
@@ -59,7 +79,7 @@ async function main() {
 }
 
 // Show all users
-async function showUsers() {
+async function showUsers(sequelize) {
     try {
         const users = await User.findAll({
             raw: true  // Get raw results
@@ -71,7 +91,7 @@ async function showUsers() {
 }
 
 // Additional Features
-async function showTables() {
+async function showTables(sequelize) {
     try {
         const tables = await sequelize.queryInterface.showAllTables();
         console.log("Available tables:");
@@ -81,7 +101,7 @@ async function showTables() {
     }
 }
 
-async function describeTable(tableName) {
+async function describeTable(sequelize, tableName) {
     try {
         const tableDescription = await sequelize.queryInterface.describeTable(tableName);
         console.log(`Structure of table '${tableName}':`);
@@ -105,7 +125,7 @@ function helpInfo() {
 }
 
 // Handle REPL commands
-async function handleCommand(input) {
+async function handleCommand(input, sequelize) {
     const args = input.split(' ');
     const command = args[0].toLowerCase();  // Convert command to lowercase for case-insensitive matching
 
@@ -114,7 +134,7 @@ async function handleCommand(input) {
             case 'query':
                 if (args.length >= 2) {
                     const sqlQuery = args.slice(1).join(' ');
-                    await executeQuery(sqlQuery);
+                    await executeQuery(sequelize, sqlQuery);  // Pass sequelize instance
                 } else {
                     console.log('Usage: query <SQL statement>');
                 }
@@ -126,7 +146,7 @@ async function handleCommand(input) {
                     const firstName = args[2];
                     const age = parseInt(args[3]);
                     if (!isNaN(age)) {
-                        await addUser(lastName, firstName, age);
+                        await addUser(lastName, firstName, age);  // Ensure addUser is defined
                     } else {
                         console.log('Invalid age');
                     }
@@ -139,7 +159,7 @@ async function handleCommand(input) {
                 if (args.length === 2) {
                     const personID = parseInt(args[1]);
                     if (!isNaN(personID)) {
-                        await deleteUser(personID);
+                        await deleteUser(personID);  // Ensure deleteUser is defined
                     } else {
                         console.log('Invalid PersonID');
                     }
@@ -155,7 +175,7 @@ async function handleCommand(input) {
                     const firstName = args[3];
                     const age = parseInt(args[4]);
                     if (!isNaN(personID) && !isNaN(age)) {
-                        await updateUser(personID, lastName, firstName, age);
+                        await updateUser(personID, lastName, firstName, age);  // Ensure updateUser is defined
                     } else {
                         console.log('Invalid PersonID or Age');
                     }
@@ -165,19 +185,19 @@ async function handleCommand(input) {
                 break;
 
             case 'list':
-                await showUsers();
+                await showUsers(sequelize);  // Pass sequelize instance
                 break;
-    
+
             case 'info':
                 if (args.length === 2) {
-                    await describeTable(args[1]);
+                    await describeTable(sequelize, args[1]);  // Pass sequelize instance
                 } else {
                     console.log('Usage: info <table_name>');
                 }
                 break;
 
             case 'tables':
-                await showTables();
+                await showTables(sequelize);  // Pass sequelize instance
                 break;
 
             case 'help':
@@ -199,4 +219,4 @@ async function handleCommand(input) {
     }
 }
 
-main();     
+main();
